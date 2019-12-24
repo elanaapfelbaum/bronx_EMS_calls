@@ -34,7 +34,6 @@ int main(){
     perror("fork");                                                                                                   
     exit(EXIT_FAILURE);
   }
-
  
   if (child2 == 0){                                             
     close(pipe1fd[1]);                     
