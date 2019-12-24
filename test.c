@@ -17,21 +17,21 @@ int main(){
     exit(EXIT_FAILURE);
   }
   
-  child1 = fork();  
-  if (child1 < 0){
-    perror("pipe");
+  child1 = fork();                      /* child 1 = zcat */
+  if (child1 < 0){                      /* if error, return error */
+    perror("fork1");
     exit(EXIT_FAILURE);
   }
   
-  if(child1 ==  0){      /* child 1 == zcat */ 
+  if(child1 ==  0){       
     close(pipe1fd[0]);
     dup2(pipe1fd[1],1);
     execlp("/bin/zcat", "zcat", FILE_NAME, NULL);
   }
 
-  child2 = fork();                                                                                                       
-  if (child2 < 0){                            /* error */                                                
-    perror("fork");                                                                                                   
+  child2 = fork();                      /* child 2 = grep */                                                                                                      
+  if (child2 < 0){                                                                      
+    perror("fork2");                                                                                                   
     exit(EXIT_FAILURE);
   }
  
@@ -46,9 +46,9 @@ int main(){
     }
   }
   
-  child3 = fork();
+  child3 = fork();                      /* child 3 = wc */
   if (child3 < 0){
-    perror("fork");
+    perror("fork3");
     exit(EXIT_FAILURE);
   }
  
