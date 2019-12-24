@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #define FILE_NAME "EMSrawData.gz"
 #define PLACE "BRONX"
 
 int main(){
   pid_t child1, child2, child3;
   int pipe1fd[2], pipe2fd[2];
+  int status;
   if (pipe(pipe1fd)  < 0) {
     perror("pipe1");
     exit(EXIT_FAILURE);
@@ -25,9 +27,13 @@ int main(){
   
   if(child1 ==  0){       
     close(pipe1fd[0]);
-    dup2(pipe1fd[1],1);
-    execlp("/bin/zcat", "zcat", FILE_NAME, NULL);
+    dup2(pipe1fd[1], 1);
+    if (execlp("/bin/zcat", "zcat", FILE_NAME, NULL) < 0){
+      perror("exec: zcat");
+    }
   }
+  /* wait for child process to finish - avoid zombies */
+  /*  waitpid(child1, &status, 0); */
 
   child2 = fork();                      /* child 2 = grep */                                                                                                      
   if (child2 < 0){                                                                      
@@ -36,12 +42,12 @@ int main(){
   }
  
   if (child2 == 0){                                             
-    close(pipe1fd[1]);                     
+    close(pipe1fd[1]);            
     dup2(pipe1fd[0], 0);
 
     close(pipe2fd[0]);
     dup2(pipe2fd[1], 1);
-    if(execlp("/bin/grep", "grep", "-i", PLACE, NULL)  < 0) {
+    if(execlp("/bin/grep", "grep", "-i", PLACE, NULL) < 0) {
       perror("exec: grep");
     }
   }
