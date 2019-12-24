@@ -25,16 +25,17 @@ int main(){
     exit(EXIT_FAILURE);
   }
   
-  if(child1 ==  0){       
-    close(pipe1fd[0]);
+  if(child1 == 0){                      /* child = 0, parent > 0 */       
+    if (close(pipe1fd[0]) < 0)
+      perror("close1");
     dup2(pipe1fd[1], 1);
     if (execlp("/bin/zcat", "zcat", FILE_NAME, NULL) < 0){
       perror("exec: zcat");
     }
   }
   /* wait for child process to finish - avoid zombies */
-  /*  waitpid(child1, &status, 0); */
-
+  waitpid(child1, &status, 0);
+  
   child2 = fork();                      /* child 2 = grep */                                                                                                      
   if (child2 < 0){                                                                      
     perror("fork2");                                                                                                   
