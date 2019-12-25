@@ -7,14 +7,14 @@
 
 int main(){
   pid_t child1, child2, child3;
-  int pipe1fd[2], pipe2fd[2];
+  int pipes[4];
   int status;
-  if (pipe(pipe1fd)  < 0) {
+  if (pipe(pipes)  < 0) {
     perror("pipe1");
     exit(EXIT_FAILURE);
   }
 
-  if (pipe(pipe2fd)  < 0) {
+  if (pipe(pipes+2)  < 0) {
     perror("pipe2");
     exit(EXIT_FAILURE);
   }
@@ -26,15 +26,20 @@ int main(){
   }
   
   if(child1 == 0){                      /* child = 0, parent > 0 */       
-    if (close(pipe1fd[0]) < 0)
-      perror("close1");
-    dup2(pipe1fd[1], 1);
+    /*if (close(pipe1fd[0]) < 0)
+      perror("close1"); */
+    
+    dup2(pipes[1], 1);
+    close(pipes[0]);
+    close(pipes[1]);
+    close(pipes[2]);
+    close(pipes[3]); 
     if (execlp("/bin/zcat", "zcat", FILE_NAME, NULL) < 0){
       perror("exec: zcat");
     }
   }
   /* wait for child process to finish - avoid zombies */
-  waitpid(child1, &status, 0);
+  /* waitpid(child1, &status, 0);*/
   
   child2 = fork();                      /* child 2 = grep */                                                                                                      
   if (child2 < 0){                                                                      
@@ -43,11 +48,19 @@ int main(){
   }
  
   if (child2 == 0){                                             
-    close(pipe1fd[1]);            
-    dup2(pipe1fd[0], 0);
+    /*close(pipe1fd[1]);          */  
+    dup2(pipes[0], 0);
+    /*close(pipe1fd[0]);*/
+    
+    /*close(pipe2fd[0]);*/
+    dup2(pipes[3], 1);
+    /*close(pipe2fd[1]);*/ 
 
-    close(pipe2fd[0]);
-    dup2(pipe2fd[1], 1);
+    close(pipes[0]);
+    close(pipes[1]);
+    close(pipes[2]);
+    close(pipes[3]); 
+    
     if(execlp("/bin/grep", "grep", "-i", PLACE, NULL) < 0) {
       perror("exec: grep");
     }
@@ -60,9 +73,14 @@ int main(){
   }
  
   if (child3 == 0) {
-    close(pipe2fd[1]);
-    dup2(pipe2fd[0], 0);
-    printf("about to run wc\n");
+    /*close(pipe2fd[1]);*/
+    dup2(pipes[2], 0);
+    /*close(pipe2fd[0]); */
+    close(pipes[0]);
+    close(pipes[1]);
+    close(pipes[2]);
+    close(pipes[3]); 
+    /*    printf("about to run wc\n");*/
     if (execlp("/usr/bin/wc", "wc", "-l", NULL) < 0) {
       perror("exec: wc");
     }
