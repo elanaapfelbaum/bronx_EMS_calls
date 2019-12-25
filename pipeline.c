@@ -1,52 +1,115 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/wait.h>
 #define FILE_NAME "EMSrawData.gz"
-#define ZIP_CODE  "10463"
-#define PLACE     "BRONX"
+#define PLACE "bronx"
 
 int main(){
-  /*printf("This program will tell you the number of EMS calls in a NYC borough of interest\n");                                             
-  printf("Which borough would you like to search? Type here:  ");                                                                         
-  scanf("%c", &PLACE);
-  printf("Checking... Hang tight! :) \n");
-  printf("Number of calls: "); */
+  pid_t child1, child2, child3;       // 3 children = 3 commands 
+  int pipes[4];                       // pipe with 4 file descriptors - read and write for both pipes! 
+  int status;
 
-  pid_t procID;                                 /* process id */ 
-  int pipefd[2];
-  pipe(pipefd);                                 /* creates a pipe with the 2 file descriptors - 0 = read, 1 = write */
-  procID = fork();                              /* branch to a child pipe */
+  // 4 fds:
+  // pipes[0] = read end of zcat --> grep pipe (read by grep) 
+  // pipes[1] = write end of zcat --> grep pipe (written by zcat)
+  // pipes[2] = read end of grep --> wc pipe (read by wc)
+  // pipes[3] = write end of grep --> wc pipe (written by grep)
+
   
-  if (procID < 0){
-    perror("fork");                             /* if there was an error with the fork */
+  // create pipes from the file descriptors and check for any errors/failures!
+  if (pipe(pipes)  < 0) {
+    perror("pipe1");
     exit(EXIT_FAILURE);
   }
+  if (pipe(pipes+2)  < 0) {
+    perror("pipe2");
+    exit(EXIT_FAILURE);
+  }
+  
+  child1 = fork();                      // child 1 = zcat
+  if (child1 < 0){                      // if error, return error
+    perror("fork1");
+    exit(EXIT_FAILURE);
+  }
+  
+  if(child1 == 0){                      // child = 0, parent > 0       
+    if (dup2(pipes[1], 1) < 0)
+      perror("dup: zcat");
 
-  if (procID > 0){                               /* reads from the child pipe */
-    close(pipefd[0]);                         /* closes the read end of the pipe */
-    dup2(pipefd[1], 1);                       /* replace stdin with input file */
-    execlp("grep", "-i", PLACE, NULL);           /* execute the grep operator = first child pipe */
-    /*close(pipefd[0]);  */
-     
-    /* fork again to the next pipe */
-    pid_t procID2 = fork();
-    if (procID2 < 0){                            /* error */
-     perror("fork");
-     exit(EXIT_FAILURE);
+    // close all the pipes!
+    // don't worry the parent can open again for the next child                               
+    for (int i=0; i < 4; i++){                              
+        if (close(pipes[i]) < 0){                           
+      fprintf(stderr, "close: zcat fd %d", i);                
+      perror("");                                           
+	}                                                       
+    }
+
+    if (execlp("/bin/zcat", "zcat", FILE_NAME, NULL) < 0){
+      perror("exec: zcat");
+    }
+  }
+  
+  child2 = fork();                      // child 2 = grep
+  if (child2 < 0){                                                                      
+    perror("fork2");                                                                                                   
+    exit(EXIT_FAILURE);
+  }
+ 
+  if (child2 == 0){  
+    if (dup2(pipes[0], 0) < 0)
+      perror("dup: grep 1");
+    if (dup2(pipes[3], 1) < 0)
+      perror("dup: grep 2");
+    
+    // close all the pipe fds                               
+    for (int i=0; i < 4; i++){                              
+        if (close(pipes[i]) < 0){                           
+      fprintf(stderr, "close: grep fd %d", i);                
+      perror("");                                           
+	}                                                       
     }
     
-    if (procID2 == 0){
-      close(pipefd[1]);                       /* close the unused read descriptor */
-      dup2(pipefd[0], 0);                     /* replace stdin with input file */
-      execlp("zcat", "zcat", FILE_NAME, NULL);      /* execute the wc operator = child of the child */
-      /* close(pipefd[1]); */
+    if(execlp("/bin/grep", "grep", "-i", PLACE, NULL) < 0) {
+      perror("exec: grep");
     }
   }
   
-  else{                                       /* parent */
-    close(pipefd[0]);                         /* close unused write end of the pipe */
-    dup2(pipefd[1], 1);                       /* replace stdout with output file  */
-    execlp("wc", "wc", "-l", NULL);  /* parent = zcat */
+  child3 = fork();                      // child 3 = wc
+  if (child3 < 0){
+    perror("fork3");
     exit(EXIT_FAILURE);
   }
+ 
+  if (child3 == 0) {
+    if (dup2(pipes[2], 0) < 0)
+      perror("dup: wc");
+
+    // close all the pipe fds
+    for (int i=0; i < 4; i++){
+	if (close(pipes[i]) < 0){
+      fprintf(stderr, "close: wc fd %d", i);
+      perror("");
+	}
+    }
+    
+  
+    if (execlp("/usr/bin/wc", "wc", "-l", NULL) < 0) {
+      perror("exec: wc");
+    }
+  }
+
+  // close the parent pipe fds
+  for (int i=0; i < 4; i++){
+    if (close(pipes[i]) < 0){
+      fprintf(stderr, "close: parent fd %d", i);
+      perror("");
+    }
+  }
+
+  // wait for every process to finish - make sure there aren't any zombie children!
+  for (int i=0; i < 3; i++)
+    wait(&status);
 }
+
