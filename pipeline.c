@@ -3,25 +3,25 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #define FILE_NAME "EMSrawData.gz"
-//#define PLACE "bronx"
+
 
 int main(){
   // simulating this pipeline: zcat EMSrawData.gz | grep -i bronx | wc -l
-  pid_t child1, child2, child3;       // 3 children = 3 commands 
+  // main function serves as the parent and each commad is a new child (i.e. fork)
+  pid_t child1, child2, child3;   
   int pipes[4];                       // pipe with 4 file descriptors - read and write for both pipes! 
   int status;
   char PLACE[20];
 
-  // allowing user input - user can search the amount of calls in any borough
+  // allowing user input - user can search the amount of calls in any borough, not just the bronx!
   // if the borough doesn't exist, it will just return zero calls
   // if the file is empty, also will return zero
   // if the file doesn't exit it will give you an error
   printf("Search EMS data for the amount of calls in your favorite borough!!\n");
   printf("Pick a borough:  ");
   scanf("%s", PLACE);
-  printf("Counting the amount of calls... hang tight!\n");
-  sleep(1);
-  printf("Number of calls in %s:\n", PLACE);
+  printf("Counting the amount of calls from %s... hang tight!\n", PLACE);
+  sleep(1); // just to give a sec before records the answer
 
     
   // 4 fds:
@@ -40,9 +40,10 @@ int main(){
     perror("pipe2");
     exit(EXIT_FAILURE);
   }
-  
-  child1 = fork();                      // child 1 = zcat
-  if (child1 < 0){                      // if error, return error
+
+  // CHILD 1 = zcat
+  child1 = fork();                 
+  if (child1 < 0){                      // check error
     perror("fork1");
     exit(EXIT_FAILURE);
   }
@@ -61,14 +62,14 @@ int main(){
 	  exit(EXIT_FAILURE);
 	}                                                       
     }
-
     if (execlp("/bin/zcat", "zcat", FILE_NAME, NULL) < 0){
       perror("exec: zcat");
       exit(EXIT_FAILURE);
     }
   }
   
-  child2 = fork();                      // child 2 = grep
+  // CHILD 2 = grep
+  child2 = fork(); 
   if (child2 < 0){                                                                      
     perror("fork2");                                                                                                   
     exit(EXIT_FAILURE);
@@ -85,7 +86,6 @@ int main(){
       perror("dup: grep 2");
       exit(EXIT_FAILURE);
     }
-    
     // close all the pipe fds                               
     for (int i=0; i < 4; i++){                              
         if (close(pipes[i]) < 0){                           
@@ -94,14 +94,14 @@ int main(){
 	  exit(EXIT_FAILURE);
 	}                                                       
     }
-    
     if(execlp("/bin/grep", "grep", "-i", PLACE, NULL) < 0) {
       perror("exec: grep");
       exit(EXIT_FAILURE);
     }
   }
-  
-  child3 = fork();                      // child 3 = wc
+
+  // CHILD 3 = wc
+  child3 = fork();                
   if (child3 < 0){
     perror("fork3");
     exit(EXIT_FAILURE);
@@ -112,7 +112,6 @@ int main(){
       perror("dup: wc");
       exit(EXIT_FAILURE);
     }
-
     // close all the pipe fds
     for (int i=0; i < 4; i++){
 	if (close(pipes[i]) < 0){
@@ -121,8 +120,6 @@ int main(){
 	  exit(EXIT_FAILURE);
 	}
     }
-    
-  
     if (execlp("/usr/bin/wc", "wc", "-l", NULL) < 0) {
       perror("exec: wc");
     }
@@ -138,7 +135,11 @@ int main(){
   }
 
   // wait for every process to finish - make sure there aren't any zombie children!
-  for (int i=0; i < 3; i++)
-    wait(&status);
+  for (int i=0; i < 3; i++){
+    if (wait(&status) < 0){
+      perror("wait");
+      exit(EXIT_FAILURE);
+    }
+  }
 }
 
