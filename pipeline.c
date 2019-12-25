@@ -3,13 +3,27 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #define FILE_NAME "EMSrawData.gz"
-#define PLACE "bronx"
+//#define PLACE "bronx"
 
 int main(){
+  // simulating this pipeline: zcat EMSrawData.gz | grep -i bronx | wc -l
   pid_t child1, child2, child3;       // 3 children = 3 commands 
   int pipes[4];                       // pipe with 4 file descriptors - read and write for both pipes! 
   int status;
+  char PLACE[20];
 
+  // allowing user input - user can search the amount of calls in any borough
+  // if the borough doesn't exist, it will just return zero calls
+  // if the file is empty, also will return zero
+  // if the file doesn't exit it will give you an error
+  printf("Search EMS data for the amount of calls in your favorite borough!!\n");
+  printf("Pick a borough:  ");
+  scanf("%s", PLACE);
+  printf("Counting the amount of calls... hang tight!\n");
+  sleep(1);
+  printf("Number of calls in %s:\n", PLACE);
+
+    
   // 4 fds:
   // pipes[0] = read end of zcat --> grep pipe (read by grep) 
   // pipes[1] = write end of zcat --> grep pipe (written by zcat)
@@ -34,20 +48,23 @@ int main(){
   }
   
   if(child1 == 0){                      // child = 0, parent > 0       
-    if (dup2(pipes[1], 1) < 0)
+    if (dup2(pipes[1], 1) < 0){
       perror("dup: zcat");
-
+      exit(EXIT_FAILURE);
+    }
     // close all the pipes!
     // don't worry the parent can open again for the next child                               
     for (int i=0; i < 4; i++){                              
         if (close(pipes[i]) < 0){                           
-      fprintf(stderr, "close: zcat fd %d", i);                
-      perror("");                                           
+	  fprintf(stderr, "close: zcat fd %d - ", i);                
+	  perror("");
+	  exit(EXIT_FAILURE);
 	}                                                       
     }
 
     if (execlp("/bin/zcat", "zcat", FILE_NAME, NULL) < 0){
       perror("exec: zcat");
+      exit(EXIT_FAILURE);
     }
   }
   
@@ -56,23 +73,31 @@ int main(){
     perror("fork2");                                                                                                   
     exit(EXIT_FAILURE);
   }
- 
+
+  // grep needs to deal with the write side of pipe 2 and the read side of pipe 1
+  // this means 2 dups are necessary
   if (child2 == 0){  
-    if (dup2(pipes[0], 0) < 0)
+    if (dup2(pipes[0], 0) < 0){
       perror("dup: grep 1");
-    if (dup2(pipes[3], 1) < 0)
+      exit(EXIT_FAILURE);
+    }
+    if (dup2(pipes[3], 1) < 0){
       perror("dup: grep 2");
+      exit(EXIT_FAILURE);
+    }
     
     // close all the pipe fds                               
     for (int i=0; i < 4; i++){                              
         if (close(pipes[i]) < 0){                           
-      fprintf(stderr, "close: grep fd %d", i);                
-      perror("");                                           
+	  fprintf(stderr, "close: grep fd %d - ", i);                
+	  perror("");                                           
+	  exit(EXIT_FAILURE);
 	}                                                       
     }
     
     if(execlp("/bin/grep", "grep", "-i", PLACE, NULL) < 0) {
       perror("exec: grep");
+      exit(EXIT_FAILURE);
     }
   }
   
@@ -83,14 +108,17 @@ int main(){
   }
  
   if (child3 == 0) {
-    if (dup2(pipes[2], 0) < 0)
+    if (dup2(pipes[2], 0) < 0){
       perror("dup: wc");
+      exit(EXIT_FAILURE);
+    }
 
     // close all the pipe fds
     for (int i=0; i < 4; i++){
 	if (close(pipes[i]) < 0){
-      fprintf(stderr, "close: wc fd %d", i);
-      perror("");
+	  fprintf(stderr, "close: wc fd %d - ", i);
+	  perror("");
+	  exit(EXIT_FAILURE);
 	}
     }
     
@@ -103,8 +131,9 @@ int main(){
   // close the parent pipe fds
   for (int i=0; i < 4; i++){
     if (close(pipes[i]) < 0){
-      fprintf(stderr, "close: parent fd %d", i);
+      fprintf(stderr, "close: parent fd %d - ", i);
       perror("");
+      exit(EXIT_FAILURE);
     }
   }
 
