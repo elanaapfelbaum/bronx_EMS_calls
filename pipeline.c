@@ -3,17 +3,9 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <ctype.h>
-#include <stdbool.h>
+#include <string.h>
 #define FILE_NAME "EMSrawData.gz"
-/*
-bool isvalueinarray(char *val, char *arr, int size){
-    int i;
-    for (i=0; i < size; i++) {
-      if ((int) arr[i] == (int) val)
-            return true;
-    }
-    return false;
-    }*/
+
 
 int main(){
   // simulating this pipeline: zcat EMSrawData.gz | grep -i bronx | wc -l
@@ -22,25 +14,29 @@ int main(){
   int pipes[4];                       // pipe with 4 file descriptors - read and write for both pipes! 
   int status;
   char PLACE[20];
-  // initializing an array with the 5 boroughs in it to limit the user input
-  // an array of strings is essentially a 2D array in c - 5 boroughs with max 20 chars eacb
-  char boroughs[5][20] = {"bronx", "manhattan", "staten island", "brooklyn", "queens"};
   
   // allowing user input - user can search the amount of calls in any borough, not just the bronx!
-  // if the borough doesn't exist, it will just return zero calls
-  // if the file is empty, also will return zero
+  // if the file is empty, it will return zero
   // if the file doesn't exit it will give you an error
   printf("Search EMS data for the amount of calls in your favorite borough!!\n");
   printf("Pick a borough:  ");
   scanf("%s", PLACE);
 
-  /*
-  while (isvalueinarray(PLACE, boroughs, 5) == false){
-    printf("Not a valid borough! :/ Try again! \n");
-    printf("Search EMS data for the amount of calls in your favorite borough!!\n");
-    printf("Pick a borough:  ");
-    scanf("%s", PLACE); 
-    }*/
+  
+  // ensure that only boroughs are valid input
+  // turn the string to all lowercase so that it can be compared
+  for (int i=0; PLACE[i]; i++){
+    PLACE[i] = tolower(PLACE[i]);
+  }
+
+  printf("PLACE = %s\n", PLACE);
+  // if the input isn't equal to any of the 5 boroughs then it is an invalid input :(
+  // the program will then terminate
+  if (strcmp(PLACE, "brooklyn") != 0 || strcmp(PLACE, "bronx") != 0 || strcmp(PLACE, "manhattan") != 0 ||
+      strcmp(PLACE, "queens") != 0 || strcmp(PLACE, "staten island") != 0){
+    printf("Invalid borough!\n");
+    return(0);
+  }  
   
   printf("Counting the amount of calls from %s... hang tight!\n", PLACE);                               
   sleep(1); // just to give a sec before records the answer
