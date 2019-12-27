@@ -11,7 +11,7 @@ int main(){
   // simulating this pipeline: zcat EMSrawData.gz | grep -i bronx | wc -l
   // main function serves as the parent and each commad is a new child (i.e. fork)
   pid_t child1, child2, child3;   
-  int pipes[4];                       // pipe with 4 file descriptors - read and write for both pipes! 
+  int pipes[4];       // pipe with 4 file descriptors - read and write for both pipes! 
   int status;
   char PLACE[20];
   
@@ -29,11 +29,10 @@ int main(){
     PLACE[i] = tolower(PLACE[i]);
   }
 
-  printf("PLACE = %s\n", PLACE);
   // if the input isn't equal to any of the 5 boroughs then it is an invalid input :(
   // the program will then terminate
-  if (strcmp(PLACE, "brooklyn") != 0 || strcmp(PLACE, "bronx") != 0 || strcmp(PLACE, "manhattan") != 0 ||
-      strcmp(PLACE, "queens") != 0 || strcmp(PLACE, "staten island") != 0){
+  if (strcmp(PLACE, "brooklyn") != 0 && strcmp(PLACE, "bronx") != 0 && strcmp(PLACE, "manhattan") != 0 &&
+      strcmp(PLACE, "queens") != 0 && strcmp(PLACE, "staten island") != 0){
     printf("Invalid borough!\n");
     return(0);
   }  
@@ -60,21 +59,21 @@ int main(){
 
   // CHILD 1 = zcat
   child1 = fork();                 
-  if (child1 < 0){                      // check error
+  if (child1 < 0){       // check error
     perror("fork1");
     exit(EXIT_FAILURE);
   }
   
-  if(child1 == 0){                      // child = 0, parent > 0       
+  if(child1 == 0){       // child = 0, parent > 0       
     if (dup2(pipes[1], 1) < 0){
       perror("dup: zcat");
       exit(EXIT_FAILURE);
-    }
+    } 
     // close all the pipes!
     // don't worry the parent can open again for the next child                               
     for (int i=0; i < 4; i++){                              
         if (close(pipes[i]) < 0){                           
-	  fprintf(stderr, "close: zcat fd %d - ", i);                
+	  fprintf(stderr, "close: zcat fd %d - ", i);      // will tell you which fd had trouble closing          
 	  perror("");
 	  exit(EXIT_FAILURE);
 	}                                                       
