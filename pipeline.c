@@ -33,11 +33,10 @@ int main(){
   // if the input isn't equal to any of the 5 boroughs then it is an invalid input :(
   // the program will then terminate
   if (strcmp(PLACE, "brooklyn") != 0 && strcmp(PLACE, "bronx") != 0 && strcmp(PLACE, "manhattan") != 0 &&
-      strcmp(PLACE, "queens") != 0 && strcmp(PLACE, "staten") != 0){
+      strcmp(PLACE, "queens") != 0 && strcmp(PLACE, "staten island") != 0){
     printf("Invalid borough!\n");
     return(0);
-  }  
-
+  }    
   
   printf("Counting the amount of calls from %s... hang tight!\n", PLACE);                               
   sleep(1); // just to give a sec before records the answer
