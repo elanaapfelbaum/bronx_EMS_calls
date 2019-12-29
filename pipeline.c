@@ -25,6 +25,7 @@ int main(){
   
   // ensure that only boroughs are valid input
   // turn the string to all lowercase so that it can be compared
+  // ignores leading and trailing whitespace 
   for (int i=0; PLACE[i]; i++){
     PLACE[i] = tolower(PLACE[i]);
   }
@@ -32,10 +33,11 @@ int main(){
   // if the input isn't equal to any of the 5 boroughs then it is an invalid input :(
   // the program will then terminate
   if (strcmp(PLACE, "brooklyn") != 0 && strcmp(PLACE, "bronx") != 0 && strcmp(PLACE, "manhattan") != 0 &&
-      strcmp(PLACE, "queens") != 0 && strcmp(PLACE, "staten island") != 0){
+      strcmp(PLACE, "queens") != 0 && strcmp(PLACE, "staten") != 0){
     printf("Invalid borough!\n");
     return(0);
   }  
+
   
   printf("Counting the amount of calls from %s... hang tight!\n", PLACE);                               
   sleep(1); // just to give a sec before records the answer
@@ -64,7 +66,7 @@ int main(){
     exit(EXIT_FAILURE);
   }
   
-  if(child1 == 0){       // child = 0, parent > 0       
+  else if (child1 == 0){       // child = 0, parent > 0       
     if (dup2(pipes[1], 1) < 0){
       perror("dup: zcat");
       exit(EXIT_FAILURE);
@@ -93,7 +95,7 @@ int main(){
 
   // grep needs to deal with the write side of pipe 2 and the read side of pipe 1
   // this means 2 dups are necessary
-  if (child2 == 0){  
+  else if (child2 == 0){  
     if (dup2(pipes[0], 0) < 0){
       perror("dup: grep 1");
       exit(EXIT_FAILURE);
@@ -110,7 +112,7 @@ int main(){
 	  exit(EXIT_FAILURE);
 	}                                                       
     }
-    if(execlp("/bin/grep", "grep", "-i", PLACE, NULL) < 0) {
+    if (execlp("/bin/grep", "grep", "-i", PLACE, NULL) < 0) {
       perror("exec: grep");
       exit(EXIT_FAILURE);
     }
@@ -123,7 +125,7 @@ int main(){
     exit(EXIT_FAILURE);
   }
  
-  if (child3 == 0) {
+  else if (child3 == 0) {
     if (dup2(pipes[2], 0) < 0){
       perror("dup: wc");
       exit(EXIT_FAILURE);
