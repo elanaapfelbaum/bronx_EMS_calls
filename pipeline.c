@@ -6,7 +6,15 @@
 #include <string.h>
 #define FILE_NAME "EMSrawData.gz"
 
-
+// using string comparisons to check whether the input is any of the five boroughs
+int isBorough(char *place){
+  if (strcmp(place, "brooklyn") != 0 && strcmp(place, "bronx") != 0 && strcmp(place, "manhattan") != 0 &&
+      strcmp(place, "queens") != 0 && strcmp(place, "staten island") != 0){
+    return 0;
+  }
+  return 1;
+}
+  
 int main(){
   // simulating this pipeline: zcat EMSrawData.gz | grep -i bronx | wc -l
   // main function serves as the parent and each commad is a new child (i.e. fork)
@@ -31,13 +39,20 @@ int main(){
   }
 
   // if the input isn't equal to any of the 5 boroughs then it is an invalid input :(
-  // the program will then terminate
-  if (strcmp(PLACE, "brooklyn") != 0 && strcmp(PLACE, "bronx") != 0 && strcmp(PLACE, "manhattan") != 0 &&
-      strcmp(PLACE, "queens") != 0 && strcmp(PLACE, "staten island") != 0){
-    printf("Invalid borough!\n");
-    return(0);
-  }    
+  /*  if (!isBorough(PLACE))
+    printf("invalid borough!\n");
+  */
   
+  while (isBorough(PLACE) == 0){
+    printf("Invalid borough try again!\n");
+    printf("Pick a borough: ");
+    scanf("%s", PLACE);
+    
+    for (int i=0; PLACE[i]; i++){
+      PLACE[i] = tolower(PLACE[i]);
+    }
+  }
+    
   printf("Counting the amount of calls from %s... hang tight!\n", PLACE);                               
   sleep(1); // just to give a sec before records the answer
  
