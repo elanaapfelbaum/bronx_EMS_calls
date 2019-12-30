@@ -8,9 +8,13 @@
 
 // using string comparisons to check whether the input is any of the five boroughs
 int isBorough(char *place){
-  if (strcmp(place, "brooklyn") != 0 && strcmp(place, "bronx") != 0 && strcmp(place, "manhattan") != 0 &&
-      strcmp(place, "queens") != 0 && strcmp(place, "staten island") != 0){
-    return 0;
+  char * token = strtok(place, " ");
+  while (token){
+    if (strcmp(token, "brooklyn") != 0 && strcmp(token, "bronx") != 0 && strcmp(token, "manhattan") != 0 &&
+	strcmp(token, "queens") != 0 && strcmp(token, "staten") != 0 && strcmp(token, "island") != 0){
+      return 0;
+    }
+    token = strtok(NULL, " ");
   }
   return 1;
 }
@@ -27,6 +31,7 @@ int main(){
   // if the file is empty, it will return zero
   // if the file doesn't exit it will give you an error
   printf("Search EMS data for the amount of calls in your favorite borough!!\n");
+  //  printf("Please input only the first word of the name\n");
   printf("Pick a borough:  ");
   scanf("%s", PLACE);
 
@@ -37,14 +42,9 @@ int main(){
   for (int i=0; PLACE[i]; i++){
     PLACE[i] = tolower(PLACE[i]);
   }
-
-  // if the input isn't equal to any of the 5 boroughs then it is an invalid input :(
-  /*  if (!isBorough(PLACE))
-    printf("invalid borough!\n");
-  */
   
   while (isBorough(PLACE) == 0){
-    printf("Invalid borough try again!\n");
+    printf("%s is an invalid borough try again!\n", PLACE);
     printf("Pick a borough: ");
     scanf("%s", PLACE);
     
@@ -80,8 +80,8 @@ int main(){
     exit(EXIT_FAILURE);
   }
   
-  else if (child1 == 0){       // child = 0, parent > 0       
-    if (dup2(pipes[1], 1) < 0){
+  else if (child1 == 0){         // child = 0, parent > 0       
+    if (dup2(pipes[1], 1) < 0){  // replace zcat's stdout with the write part of the first pipe  
       perror("dup: zcat");
       exit(EXIT_FAILURE);
     } 
@@ -94,7 +94,7 @@ int main(){
 	  exit(EXIT_FAILURE);
 	}                                                       
     }
-    if (execlp("/bin/zcat", "zcat", FILE_NAME, NULL) < 0){
+    if (execlp("/bin/zcat", "zcat", FILE_NAME, NULL) < 0){ // path, command, arguments
       perror("exec: zcat");
       exit(EXIT_FAILURE);
     }
@@ -110,11 +110,11 @@ int main(){
   // grep needs to deal with the write side of pipe 2 and the read side of pipe 1
   // this means 2 dups are necessary
   else if (child2 == 0){  
-    if (dup2(pipes[0], 0) < 0){
+    if (dup2(pipes[0], 0) < 0){   // replace greps stdin with the read end of the first pipe
       perror("dup: grep 1");
       exit(EXIT_FAILURE);
     }
-    if (dup2(pipes[3], 1) < 0){
+    if (dup2(pipes[3], 1) < 0){   // replace greps stdout with the write end of the second pipe
       perror("dup: grep 2");
       exit(EXIT_FAILURE);
     }
@@ -140,7 +140,7 @@ int main(){
   }
  
   else if (child3 == 0) {
-    if (dup2(pipes[2], 0) < 0){
+    if (dup2(pipes[2], 0) < 0){   // replace wcs stdin with the read end of the second pipe
       perror("dup: wc");
       exit(EXIT_FAILURE);
     }
