@@ -5,20 +5,18 @@
 #include <ctype.h>
 #include <string.h>
 #define FILE_NAME "EMSrawData.gz"
+#define TRUE 1
+#define FALSE 0
 
 // using string comparisons to check whether the input is any of the five boroughs
 int isBorough(char *place){
-  char * token = strtok(place, " ");
-  while (token){
-    if (strcmp(token, "brooklyn") != 0 && strcmp(token, "bronx") != 0 && strcmp(token, "manhattan") != 0 &&
-	strcmp(token, "queens") != 0 && strcmp(token, "staten") != 0 && strcmp(token, "island") != 0){
-      return 0;
-    }
-    token = strtok(NULL, " ");
+  if (strcmp(place, "brooklyn") != 0 && strcmp(place, "bronx") != 0 && strcmp(place, "manhattan") != 0 &&
+      strcmp(place, "queens") != 0 && strcmp(place, "staten")){
+    return FALSE;
   }
-  return 1;
+  return TRUE;
 }
-  
+
 int main(){
   // simulating this pipeline: zcat EMSrawData.gz | grep -i bronx | wc -l
   // main function serves as the parent and each commad is a new child (i.e. fork)
@@ -26,23 +24,24 @@ int main(){
   int pipes[4];       // pipe with 4 file descriptors - read and write for both pipes! 
   int status;
   char PLACE[20];
-  
+
   // allowing user input - user can search the amount of calls in any borough, not just the bronx!
+  // only looking at the first word of the input - "staten island" will just evaluate whether "staten" is a borough
   // if the file is empty, it will return zero
   // if the file doesn't exit it will give you an error
   printf("Search EMS data for the amount of calls in your favorite borough!!\n");
-  //  printf("Please input only the first word of the name\n");
+  printf("Please input only the first word of the borough name for accurate results\n");
   printf("Pick a borough:  ");
   scanf("%s", PLACE);
 
-  
   // ensure that only boroughs are valid input
   // turn the string to all lowercase so that it can be compared
   // ignores leading and trailing whitespace 
   for (int i=0; PLACE[i]; i++){
     PLACE[i] = tolower(PLACE[i]);
   }
-  
+
+  // as long as it is not a valid borough, keep prompting the user
   while (isBorough(PLACE) == 0){
     printf("%s is an invalid borough try again!\n", PLACE);
     printf("Pick a borough: ");
@@ -51,7 +50,7 @@ int main(){
     for (int i=0; PLACE[i]; i++){
       PLACE[i] = tolower(PLACE[i]);
     }
-  }
+  } 
     
   printf("Counting the amount of calls from %s... hang tight!\n", PLACE);                               
   sleep(1); // just to give a sec before records the answer
